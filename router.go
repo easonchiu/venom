@@ -2,46 +2,59 @@ package venom
 
 import (
   "github.com/gin-gonic/gin"
+  "github.com/go-redis/redis/v8"
+  "go.mongodb.org/mongo-driver/mongo"
   "net/http"
 )
 
 type Router struct {
   Config *Config
-  Client *Client
+  Redis  *redis.Client
+  Mongo  *mongo.Database
   Gin    *gin.Engine
 }
 
-type Handle func(ctx *Ctx) bool
+type Handle func(ctx *Context) bool
 
 func (e *Engine) Router() *Router {
   return &Router{
     Config: e.Config,
-    Client: e.Client,
+    Redis:  e.Redis,
+    Mongo:  e.Mongo,
     Gin:    e.Gin,
   }
 }
 
 // 调用gin的handle, 并将gin的context包装一层，以便加入更多的功能
-func (r *Router) handleGin(httpMethod, path string, handle Handle) gin.IRoutes {
-  return r.Gin.Handle(httpMethod, path, func(gctx *gin.Context) {
-    handle(&Ctx{Config: r.Config, Client: r.Client, GinContext: gctx})
-  })
+func (r *Router) handleGin(httpMethod, path string, handles ...Handle) gin.IRoutes {
+  if handles == nil {
+    return nil
+  }
+
+  funcs := make([]gin.HandlerFunc, 0, len(handles))
+  for _, h := range handles {
+    funcs = append(funcs, func(gctx *gin.Context) {
+      h(&Context{Config: r.Config, Redis: r.Redis, Mongo: r.Mongo, GinContext: gctx})
+    })
+  }
+
+  return r.Gin.Handle(httpMethod, path, funcs...)
 }
 
-func (r *Router) Handle(httpMethod, path string, handle Handle) {
-  _ = r.handleGin(httpMethod, path, handle)
+func (r *Router) Handle(httpMethod, path string, handles ...Handle) {
+  _ = r.handleGin(httpMethod, path, handles...)
 }
 
-func (r *Router) GET(path string, handle Handle) {
-  _ = r.handleGin(http.MethodGet, path, handle)
+func (r *Router) GET(path string, handles ...Handle) {
+  _ = r.handleGin(http.MethodGet, path, handles...)
 }
 
-func (r *Router) POST(path string, handle Handle) {
-  _ = r.handleGin(http.MethodPost, path, handle)
+func (r *Router) POST(path string, handles ...Handle) {
+  _ = r.handleGin(http.MethodPost, path, handles...)
 }
 
-func (r *Router) PUT(path string, handle Handle) {
-  _ = r.handleGin(http.MethodPut, path, handle)
+func (r *Router) PUT(path string, handles ...Handle) {
+  _ = r.handleGin(http.MethodPut, path, handles...)
 }
 
 type RouterGroup struct {

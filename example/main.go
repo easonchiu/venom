@@ -2,13 +2,15 @@ package main
 
 import (
   "github.com/gin-gonic/gin"
+  "github.com/sirupsen/logrus"
   "venom"
+  "venom/example/controller"
 )
 
 func main() {
-  g := venom.Init(&venom.Config{
+  v := venom.Init(&venom.Config{
     Mode: venom.ModeDevelopment,
-    Port: "3333",
+    Port: "3200",
     SuccessFormat: func(code int, obj interface{}) interface{} {
       return gin.H{
         "code":    "0",
@@ -23,28 +25,31 @@ func main() {
       }
     },
     ErrorCodes: map[string]string{
-      "600123": "some error",
+      "999999": "system error",
     },
     Redis: venom.RedisConfig{
-      Address: "172.16.22.212",
-      Port:    "6379",
+      Host:     "localhost",
+      Port:     "6379",
+      Password: "",
+    },
+    Mongo: venom.MongoConfig{
+      URI: "mongodb://localhost:27017/db",
+    },
+    Logger: venom.LoggerConfig{
+      Filename:   "system.log",
+      MaxSize:    500,
+      MaxBackups: 3,
+      MaxAge:     30,
+      Level:      logrus.DebugLevel,
     },
   })
 
-  RegisterRouters(g.Router())
+  RegisterRouters(v.Router())
 
-  _ = g.Start()
+  _ = v.Start()
 }
 
 func RegisterRouters(r *venom.Router) {
-  r.GET("/", Get2)
-  r.Group("a").GET("/", Get)
-}
-
-func Get(ctx *venom.Ctx) bool {
-  return ctx.Success200("res")
-}
-
-func Get2(ctx *venom.Ctx) bool {
-  return ctx.Error200("600123")
+  user := new(controller.UserController)
+  r.GET("/", user.Get)
 }

@@ -1,5 +1,9 @@
 package venom
 
+import (
+  "github.com/sirupsen/logrus"
+)
+
 type Mode int
 
 const (
@@ -12,11 +16,11 @@ type Config struct {
   Port          string
   Mode          Mode
   SuccessFormat func(code int, obj interface{}) interface{}
-  ErrorFormat   func(code int, errCode string, errMessage string, obj... interface{}) interface{}
+  ErrorFormat   func(code int, errCode string, errMessage string, obj ...interface{}) interface{}
   ErrorCodes    map[string]string
   Apollo        ApolloConfig
   Redis         RedisConfig
-  Mongodb       MongodbConfig
+  Mongo         MongoConfig
   Logger        LoggerConfig
 }
 
@@ -29,22 +33,23 @@ type ApolloConfig struct {
 }
 
 type RedisConfig struct {
-  Address  string
+  Host     string
   Port     string
   Password string
   DB       int
   Disabled bool
 }
 
-type MongodbConfig struct {
-  Address  string
-  Port     string
-  Username string
-  Password string
-  DB       string
+type MongoConfig struct {
+  URI      string
   Disabled bool
 }
 
 type LoggerConfig struct {
-  Disabled bool
+  Filename     string
+  MaxSize int
+  MaxBackups    int
+  Level        logrus.Level
+  MaxAge    int
+  Disabled     bool
 }
