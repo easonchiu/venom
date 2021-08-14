@@ -1,4 +1,4 @@
-module venom
+module github.com/easonchiu/venom
 
 go 1.16
 
