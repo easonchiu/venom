@@ -2,14 +2,12 @@ package venom
 
 import (
   "github.com/gin-gonic/gin"
-  "github.com/go-redis/redis/v8"
-  "go.mongodb.org/mongo-driver/mongo"
 )
 
 type Engine struct {
   Config *Config
-  Redis  *redis.Client
-  Mongo  *mongo.Database
+  Redis  *RedisClient
+  Mongo  *MongoClient
   Gin    *gin.Engine
 }
 

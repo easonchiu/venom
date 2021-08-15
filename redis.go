@@ -1,20 +1,28 @@
 package venom
 
 import (
-  goredis "github.com/go-redis/redis/v8"
+  "github.com/go-redis/redis/v8"
 )
 
-type redisClients map[string]*goredis.Client
+type RedisClient struct {
+  *redis.Client
+}
 
-var resclients redisClients = make(map[string]*goredis.Client)
+type redisClients map[string]*RedisClient
 
-func initRedisClient(config RedisConfig) *goredis.Client {
+const DefaultRedisClientKey = "default"
+
+var resclients redisClients = make(map[string]*RedisClient)
+
+func initRedisClient(config RedisConfig) *RedisClient {
   if config.Host == "" || config.Disabled {
     return nil
   }
 
-  if client := GetRedisClient(); client != nil {
-    return client
+  client := new(RedisClient)
+
+  if c := client.GetDefaultClient(); c != nil {
+    return c
   }
 
   port := "6379"
@@ -23,21 +31,27 @@ func initRedisClient(config RedisConfig) *goredis.Client {
     port = config.Port
   }
 
-  rds := goredis.NewClient(&goredis.Options{
-    Addr:     config.Host + ":" + port,
-    Password: config.Password,
-    DB:       config.DB,
-  })
-
-  resclients["default"] = rds
-
-  return rds
-}
-
-func GetRedisClient() *goredis.Client {
-  if resclients != nil && resclients["default"] != nil {
-    return resclients["default"]
+  client = &RedisClient{
+    redis.NewClient(&redis.Options{
+      Addr:     config.Host + ":" + port,
+      Password: config.Password,
+      DB:       config.DB,
+    }),
   }
 
-  return nil
+  resclients[DefaultRedisClientKey] = client
+
+  return client
+}
+
+func (r *RedisClient) GetClient(key string) *RedisClient {
+  if resclients == nil {
+    return nil
+  }
+
+  return resclients[key]
+}
+
+func (r *RedisClient) GetDefaultClient() *RedisClient {
+  return r.GetClient(DefaultRedisClientKey)
 }

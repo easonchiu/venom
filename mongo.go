@@ -7,17 +7,25 @@ import (
   "time"
 )
 
-type mongodbClients map[string]*mongo.Database
+type MongoClient struct {
+  *mongo.Database
+}
 
-var mgclients mongodbClients = make(map[string]*mongo.Database)
+type mongodbClients map[string]*MongoClient
 
-func initMongoClient(config MongoConfig) *mongo.Database {
+const DefaultMongoClientKey = "default"
+
+var mgclients mongodbClients = make(map[string]*MongoClient)
+
+func initMongoClient(config MongoConfig) *MongoClient {
   if config.URI == "" || config.Disabled {
     return nil
   }
 
-  if client := GetMongoClient(); client != nil {
-    return client
+  client := new(MongoClient)
+
+  if c:= client.GetDefaultClient(); c != nil {
+    return c
   }
 
   ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -25,23 +33,29 @@ func initMongoClient(config MongoConfig) *mongo.Database {
 
   opts := options.Client()
   opts.ApplyURI(config.URI)
-  client, err := mongo.Connect(ctx, opts)
+  mgo, err := mongo.Connect(ctx, opts)
 
   if err != nil {
     panic(err)
   }
 
-  db := client.Database(opts.Auth.AuthSource)
-
-  mgclients["default"] = db
-
-  return db
-}
-
-func GetMongoClient() *mongo.Database {
-  if mgclients != nil && mgclients["default"] != nil {
-    return mgclients["default"]
+  client = &MongoClient{
+    mgo.Database(opts.Auth.AuthSource),
   }
 
-  return nil
+  mgclients[DefaultMongoClientKey] = client
+
+  return client
+}
+
+func (m *MongoClient) GetClient(key string) *MongoClient {
+  if mgclients == nil {
+    return nil
+  }
+
+  return mgclients[key]
+}
+
+func (m *MongoClient) GetDefaultClient() *MongoClient {
+  return m.GetClient(DefaultMongoClientKey)
 }
