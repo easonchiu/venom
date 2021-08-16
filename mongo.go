@@ -4,6 +4,7 @@ import (
   "context"
   "go.mongodb.org/mongo-driver/mongo"
   "go.mongodb.org/mongo-driver/mongo/options"
+  "path"
   "time"
 )
 
@@ -39,8 +40,13 @@ func initMongoClient(key string, config MongoConfig) *MongoClient {
     panic(err)
   }
 
+  databaseName := path.Base(config.URI)
+  if opts.Auth != nil && opts.Auth.AuthSource != "" {
+    databaseName = opts.Auth.AuthSource
+  }
+
   client = &MongoClient{
-    mgo.Database(opts.Auth.AuthSource),
+    mgo.Database(databaseName),
   }
 
   mgclients[key] = client
@@ -64,4 +70,8 @@ func (m *MongoClient) GetClient(key ...string) *MongoClient {
 
 func (m *MongoClient) GetDefaultClient() *MongoClient {
   return m.GetClient(DefaultMongoClientKey)
+}
+
+func (m *MongoClient) GetDB(name string) *mongo.Database {
+  return m.Database.Client().Database(name)
 }
