@@ -17,14 +17,14 @@ const DefaultMongoClientKey = "default"
 
 var mgclients mongodbClients = make(map[string]*MongoClient)
 
-func initMongoClient(config MongoConfig) *MongoClient {
-  if config.URI == "" || config.Disabled {
-    return nil
-  }
-
+func initMongoClient(key string, config MongoConfig) *MongoClient {
   client := new(MongoClient)
 
-  if c:= client.GetDefaultClient(); c != nil {
+  if key == "" || config.URI == "" || config.Disabled {
+    return client
+  }
+
+  if c := client.GetClient(key); c != nil {
     return c
   }
 
@@ -43,17 +43,23 @@ func initMongoClient(config MongoConfig) *MongoClient {
     mgo.Database(opts.Auth.AuthSource),
   }
 
-  mgclients[DefaultMongoClientKey] = client
+  mgclients[key] = client
 
   return client
 }
 
-func (m *MongoClient) GetClient(key string) *MongoClient {
+func (m *MongoClient) GetClient(key ...string) *MongoClient {
+  k := DefaultMongoClientKey
+
+  if key != nil && len(key) > 0 {
+    k = key[0]
+  }
+
   if mgclients == nil {
     return nil
   }
 
-  return mgclients[key]
+  return mgclients[k]
 }
 
 func (m *MongoClient) GetDefaultClient() *MongoClient {

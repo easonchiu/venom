@@ -14,14 +14,14 @@ const DefaultRedisClientKey = "default"
 
 var resclients redisClients = make(map[string]*RedisClient)
 
-func initRedisClient(config RedisConfig) *RedisClient {
-  if config.Host == "" || config.Disabled {
-    return nil
-  }
-
+func initRedisClient(key string, config RedisConfig) *RedisClient {
   client := new(RedisClient)
 
-  if c := client.GetDefaultClient(); c != nil {
+  if key == "" || config.Host == "" || config.Disabled {
+    return client
+  }
+
+  if c := client.GetClient(key); c != nil {
     return c
   }
 
@@ -39,17 +39,23 @@ func initRedisClient(config RedisConfig) *RedisClient {
     }),
   }
 
-  resclients[DefaultRedisClientKey] = client
+  resclients[key] = client
 
   return client
 }
 
-func (r *RedisClient) GetClient(key string) *RedisClient {
+func (r *RedisClient) GetClient(key ...string) *RedisClient {
+  k := DefaultRedisClientKey
+
+  if key != nil && len(key) > 0 {
+    k = key[0]
+  }
+
   if resclients == nil {
     return nil
   }
 
-  return resclients[key]
+  return resclients[k]
 }
 
 func (r *RedisClient) GetDefaultClient() *RedisClient {

@@ -21,6 +21,8 @@ type Config struct {
   Apollo        ApolloConfig
   Redis         RedisConfig
   Mongo         MongoConfig
+  RedisMap      map[string]RedisConfig
+  MongoMap      map[string]MongoConfig
   Logger        LoggerConfig
 }
 
@@ -46,10 +48,10 @@ type MongoConfig struct {
 }
 
 type LoggerConfig struct {
-  Filename     string
-  MaxSize int
-  MaxBackups    int
-  Level        logrus.Level
-  MaxAge    int
-  Disabled     bool
+  Filename   string
+  MaxSize    int
+  MaxBackups int
+  Level      logrus.Level
+  MaxAge     int
+  Disabled   bool
 }

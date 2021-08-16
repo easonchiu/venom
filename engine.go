@@ -22,8 +22,20 @@ func Init(config *Config) *Engine {
 
   g := gin.Default()
 
-  rds := initRedisClient(config.Redis)
-  mgo := initMongoClient(config.Mongo)
+  rds := initRedisClient(DefaultRedisClientKey, config.Redis)
+  mgo := initMongoClient(DefaultMongoClientKey, config.Mongo)
+
+  if config.RedisMap != nil {
+    for k, c := range config.RedisMap {
+      initRedisClient(k, c)
+    }
+  }
+
+  if config.MongoMap != nil {
+    for k, c := range config.MongoMap {
+      initMongoClient(k, c)
+    }
+  }
 
   if !config.Logger.Disabled {
     g.Use(LoggerMiddleware(config.Logger))
