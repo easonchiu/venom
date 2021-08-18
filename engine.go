@@ -77,6 +77,10 @@ func (e *Engine) Use(middleware ...Handle) {
   e.Gin.Use(funcs...)
 }
 
+func (e *Engine) Mode() Mode {
+  return e.Config.Mode
+}
+
 // 启动server
 func (e *Engine) Start() error {
   defer func() {
