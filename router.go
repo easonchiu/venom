@@ -36,7 +36,7 @@ func (r *Router) handleGin(httpMethod, path string, handles ...Handle) gin.IRout
   funcs := make([]gin.HandlerFunc, 0, len(handles))
   for _, h := range handles {
     funcs = append(funcs, func(gctx *gin.Context) {
-      h(&Context{Config: r.Config, Redis: r.Redis, Mongo: r.Mongo, Qmgo: r.Qmgo, GinContext: gctx})
+      h(&Context{r.Config, r.Redis, r.Mongo, r.Qmgo, gctx})
     })
   }
 

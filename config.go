@@ -16,8 +16,8 @@ type Config struct {
   Port          string
   Mode          Mode
   SuccessFormat func(code int, obj interface{}) interface{}
-  ErrorFormat   func(code int, errCode string, errMessage string, obj ...interface{}) interface{}
-  ErrorCodes    map[string]string
+  FailFormat    func(code int, errCode string, errMessage string, obj ...interface{}) interface{}
+  FailCodes     map[string]string
   Apollo        ApolloConfig
   Redis         RedisConfig
   Mongo         MongoConfig

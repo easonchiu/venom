@@ -70,7 +70,7 @@ func (e *Engine) Use(middleware ...Handle) {
   funcs := make([]gin.HandlerFunc, 0, len(middleware))
   for _, m := range middleware {
     funcs = append(funcs, func(gctx *gin.Context) {
-      m(&Context{Config: e.Config, Redis: e.Redis, Mongo: e.Mongo, GinContext: gctx})
+      m(&Context{e.Config, e.Redis, e.Mongo, e.Qmgo, gctx})
     })
   }
 
