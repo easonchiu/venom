@@ -7,8 +7,8 @@ import (
 type Mode int
 
 const (
-  ModeProduction Mode = iota
-  ModeDevelopment
+  ProductionMode Mode = iota
+  DevelopmentMode
 )
 
 type Config struct {
@@ -21,8 +21,10 @@ type Config struct {
   Apollo        ApolloConfig
   Redis         RedisConfig
   Mongo         MongoConfig
+  Qmgo          QmgoConfig
   RedisMap      map[string]RedisConfig
   MongoMap      map[string]MongoConfig
+  QmgoMap       map[string]QmgoConfig
   Logger        LoggerConfig
 }
 
@@ -43,8 +45,19 @@ type RedisConfig struct {
 }
 
 type MongoConfig struct {
-  URI      string
-  Disabled bool
+  URI         string
+  Database    string
+  MinPoolSize uint64
+  MaxPoolSize uint64
+  Disabled    bool
+}
+
+type QmgoConfig struct {
+  URI         string
+  Database    string
+  MinPoolSize uint64
+  MaxPoolSize uint64
+  Disabled    bool
 }
 
 type LoggerConfig struct {

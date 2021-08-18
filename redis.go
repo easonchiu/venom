@@ -8,11 +8,9 @@ type RedisClient struct {
   *redis.Client
 }
 
-type redisClients map[string]*RedisClient
-
 const DefaultRedisClientKey = "default"
 
-var resclients redisClients = make(map[string]*RedisClient)
+var rdsclients = make(map[string]*RedisClient)
 
 func initRedisClient(key string, config RedisConfig) *RedisClient {
   client := new(RedisClient)
@@ -39,7 +37,7 @@ func initRedisClient(key string, config RedisConfig) *RedisClient {
     }),
   }
 
-  resclients[key] = client
+  rdsclients[key] = client
 
   return client
 }
@@ -51,13 +49,22 @@ func (r *RedisClient) GetClient(key ...string) *RedisClient {
     k = key[0]
   }
 
-  if resclients == nil {
+  if rdsclients == nil {
     return nil
   }
 
-  return resclients[k]
+  return rdsclients[k]
 }
 
 func (r *RedisClient) GetDefaultClient() *RedisClient {
   return r.GetClient(DefaultRedisClientKey)
+}
+
+func (r *RedisClient) CloseAll() {
+  for k, c := range rdsclients {
+    if c != nil {
+      _ = c.Close()
+      rdsclients[k] = nil
+    }
+  }
 }

@@ -12,11 +12,9 @@ type MongoClient struct {
   *mongo.Database
 }
 
-type mongodbClients map[string]*MongoClient
-
 const DefaultMongoClientKey = "default"
 
-var mgclients mongodbClients = make(map[string]*MongoClient)
+var mgclients = make(map[string]*MongoClient)
 
 func initMongoClient(key string, config MongoConfig) *MongoClient {
   client := new(MongoClient)
@@ -34,8 +32,14 @@ func initMongoClient(key string, config MongoConfig) *MongoClient {
 
   opts := options.Client()
   opts.ApplyURI(config.URI)
-  mgo, err := mongo.Connect(ctx, opts)
+  if config.MinPoolSize > 0 {
+    opts.SetMinPoolSize(config.MinPoolSize)
+  }
+  if config.MaxPoolSize > 0 {
+    opts.SetMaxPoolSize(config.MinPoolSize)
+  }
 
+  mgo, err := mongo.Connect(ctx, opts)
   if err != nil {
     panic(err)
   }
@@ -43,6 +47,9 @@ func initMongoClient(key string, config MongoConfig) *MongoClient {
   databaseName := path.Base(config.URI)
   if opts.Auth != nil && opts.Auth.AuthSource != "" {
     databaseName = opts.Auth.AuthSource
+  }
+  if config.Database != "" {
+    databaseName = config.Database
   }
 
   client = &MongoClient{
@@ -74,4 +81,17 @@ func (m *MongoClient) GetDefaultClient() *MongoClient {
 
 func (m *MongoClient) GetDB(name string) *mongo.Database {
   return m.Database.Client().Database(name)
+}
+
+func (m *MongoClient) C(name string) *mongo.Collection {
+  return m.Collection(name)
+}
+
+func (m *MongoClient) CloseAll() {
+  for k, c := range mgclients {
+    if c != nil {
+      _ = c.Client().Disconnect(context.Background())
+      mgclients[k] = nil
+    }
+  }
 }

@@ -1,6 +1,7 @@
 package venom
 
 import (
+  "fmt"
   "github.com/gin-gonic/gin"
 )
 
@@ -8,13 +9,14 @@ type Engine struct {
   Config *Config
   Redis  *RedisClient
   Mongo  *MongoClient
+  Qmgo   *QmgoClient
   Gin    *gin.Engine
 }
 
 // 初始化server
 func Init(config *Config) *Engine {
   ginMode := gin.DebugMode
-  if config.Mode == ModeProduction {
+  if config.Mode == ProductionMode {
     ginMode = gin.ReleaseMode
   }
 
@@ -24,6 +26,7 @@ func Init(config *Config) *Engine {
 
   rds := initRedisClient(DefaultRedisClientKey, config.Redis)
   mgo := initMongoClient(DefaultMongoClientKey, config.Mongo)
+  qmgo := initQmgoClient(DefaultQmgoClientKey, config.Qmgo)
 
   if config.RedisMap != nil {
     for k, c := range config.RedisMap {
@@ -37,6 +40,12 @@ func Init(config *Config) *Engine {
     }
   }
 
+  if config.QmgoMap != nil {
+    for k, c := range config.QmgoMap {
+      initQmgoClient(k, c)
+    }
+  }
+
   if !config.Logger.Disabled {
     g.Use(LoggerMiddleware(config.Logger))
   }
@@ -45,6 +54,7 @@ func Init(config *Config) *Engine {
     Config: config,
     Redis:  rds,
     Mongo:  mgo,
+    Qmgo:   qmgo,
     Gin:    g,
   }
 
@@ -69,5 +79,12 @@ func (e *Engine) Use(middleware ...Handle) {
 
 // 启动server
 func (e *Engine) Start() error {
+  defer func() {
+    e.Mongo.CloseAll()
+    e.Qmgo.CloseAll()
+    e.Redis.CloseAll()
+  }()
+
+  fmt.Println("Ready start venom ...")
   return e.Gin.Run(e.Config.Address + ":" + e.Config.Port)
 }

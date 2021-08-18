@@ -1,6 +1,7 @@
 package venom
 
 import (
+  "context"
   "github.com/gin-gonic/gin"
 )
 
@@ -8,7 +9,12 @@ type Context struct {
   Config     *Config
   Redis      *RedisClient
   Mongo      *MongoClient
+  Qmgo       *QmgoClient
   GinContext *gin.Context
+}
+
+func (ctx *Context) Bg() context.Context {
+  return context.Background()
 }
 
 func (ctx *Context) Success(code int, obj interface{}) bool {

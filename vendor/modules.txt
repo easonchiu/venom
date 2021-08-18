@@ -54,6 +54,15 @@ github.com/modern-go/concurrent
 github.com/modern-go/reflect2
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
+# github.com/qiniu/qmgo v1.0.0
+## explicit
+github.com/qiniu/qmgo
+github.com/qiniu/qmgo/field
+github.com/qiniu/qmgo/hook
+github.com/qiniu/qmgo/middleware
+github.com/qiniu/qmgo/operator
+github.com/qiniu/qmgo/options
+github.com/qiniu/qmgo/validator
 # github.com/sirupsen/logrus v1.4.2
 ## explicit
 github.com/sirupsen/logrus

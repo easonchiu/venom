@@ -9,6 +9,7 @@ type Router struct {
   Config         *Config
   Redis          *RedisClient
   Mongo          *MongoClient
+  Qmgo           *QmgoClient
   Gin            *gin.Engine
   GinRouterGroup *gin.RouterGroup
 }
@@ -20,6 +21,7 @@ func (e *Engine) Router() *Router {
     Config:         e.Config,
     Redis:          e.Redis,
     Mongo:          e.Mongo,
+    Qmgo:           e.Qmgo,
     Gin:            e.Gin,
     GinRouterGroup: e.Gin.Group(""),
   }
@@ -34,7 +36,7 @@ func (r *Router) handleGin(httpMethod, path string, handles ...Handle) gin.IRout
   funcs := make([]gin.HandlerFunc, 0, len(handles))
   for _, h := range handles {
     funcs = append(funcs, func(gctx *gin.Context) {
-      h(&Context{Config: r.Config, Redis: r.Redis, Mongo: r.Mongo, GinContext: gctx})
+      h(&Context{Config: r.Config, Redis: r.Redis, Mongo: r.Mongo, Qmgo: r.Qmgo, GinContext: gctx})
     })
   }
 
@@ -86,6 +88,7 @@ func (r *Router) Group(path string) *Router {
     Config:         r.Config,
     Redis:          r.Redis,
     Mongo:          r.Mongo,
+    Qmgo:           r.Qmgo,
     Gin:            r.Gin,
     GinRouterGroup: r.GinRouterGroup.Group(path),
   }
