@@ -4,6 +4,12 @@ import (
   "github.com/go-redis/redis/v8"
 )
 
+type IRedisClient interface {
+  GetClient(key ...string) *RedisClient
+  GetDefaultClient() *RedisClient
+  CloseAll()
+}
+
 type RedisClient struct {
   *redis.Client
 }
@@ -68,3 +74,7 @@ func (r *RedisClient) CloseAll() {
     }
   }
 }
+
+var (
+  _ IRedisClient = &RedisClient{}
+)

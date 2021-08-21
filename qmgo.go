@@ -5,6 +5,14 @@ import (
   "github.com/qiniu/qmgo"
 )
 
+type IQmgoClient interface {
+  GetClient(key ...string) *QmgoClient
+  GetDefaultClient() *QmgoClient
+  GetDB(name string) *qmgo.Database
+  C(name string) *qmgo.Collection
+  CloseAll()
+}
+
 type QmgoClient struct {
   *qmgo.QmgoClient
 }
@@ -74,3 +82,7 @@ func (m *QmgoClient) CloseAll() {
     }
   }
 }
+
+var (
+  _ IQmgoClient = &QmgoClient{}
+)

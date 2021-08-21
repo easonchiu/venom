@@ -2,6 +2,7 @@ package venom
 
 import (
   "github.com/gin-gonic/gin"
+  "github.com/sirupsen/logrus"
   "go.mongodb.org/mongo-driver/bson"
   "testing"
 )
@@ -17,14 +18,21 @@ func getEngine() *Engine {
         "data":    obj,
       }
     },
-    Mongo: MongoConfig{
-      URI:      "mongodb://localhost:27017/admin",
-      Database: "stock",
+    Logger: LoggerConfig{
+      Filename:   "log",
+      MaxSize:    500,
+      MaxAge:     7,
+      MaxBackups: 3,
+      Level:      logrus.DebugLevel,
     },
-    Qmgo: QmgoConfig{
-      URI:      "mongodb://localhost:27017/admin",
-      Database: "stock",
-    },
+    // Mongo: MongoConfig{
+    //   URI:      "mongodb://localhost:27017/admin",
+    //   Database: "stock",
+    // },
+    // Qmgo: QmgoConfig{
+    //   URI:      "mongodb://localhost:27017/admin",
+    //   Database: "stock",
+    // },
   })
 }
 

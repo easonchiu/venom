@@ -5,6 +5,13 @@ import (
   "github.com/gin-gonic/gin"
 )
 
+type IEngine interface {
+  Use(middleware ...Handle)
+  Router() *Router
+  Mode() Mode
+  Start() error
+}
+
 type Engine struct {
   Config *Config
   Redis  *RedisClient
@@ -92,3 +99,7 @@ func (e *Engine) Start() error {
   fmt.Println("Ready start venom ...")
   return e.Gin.Run(e.Config.Address + ":" + e.Config.Port)
 }
+
+var (
+  _ IEngine = &Engine{}
+)

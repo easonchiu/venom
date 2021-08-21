@@ -7,6 +7,14 @@ import (
   "github.com/gin-gonic/gin"
 )
 
+type IContext interface {
+  Bg() context.Context
+  Success(code int, obj interface{}) bool
+  Success200(obj interface{}) bool
+  Fail(code int, errCode string, obj ...interface{}) bool
+  Fail200(errCode string, obj ...interface{}) bool
+}
+
 type Context struct {
   Config *Config
   Redis  *RedisClient
@@ -61,3 +69,7 @@ func (ctx *Context) Fail(code int, errCode string, obj ...interface{}) bool {
 func (ctx *Context) Fail200(errCode string, obj ...interface{}) bool {
   return ctx.Fail(200, errCode, obj...)
 }
+
+var (
+  _ IContext = &Context{}
+)

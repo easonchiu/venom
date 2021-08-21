@@ -5,6 +5,21 @@ import (
   "net/http"
 )
 
+type IRouter interface {
+  handleGin(httpMethod, path string, handles ...Handle) gin.IRoutes
+  Handle(httpMethod, path string, handles ...Handle)
+  CONNECT(path string, handles ...Handle)
+  PUT(path string, handles ...Handle)
+  POST(path string, handles ...Handle)
+  DELETE(path string, handles ...Handle)
+  GET(path string, handles ...Handle)
+  HEAD(path string, handles ...Handle)
+  OPTIONS(path string, handles ...Handle)
+  PATCH(path string, handles ...Handle)
+  TRACH(path string, handles ...Handle)
+  Group(path string) *Router
+}
+
 type Router struct {
   Config         *Config
   Redis          *RedisClient
@@ -93,3 +108,7 @@ func (r *Router) Group(path string) *Router {
     GinRouterGroup: r.GinRouterGroup.Group(path),
   }
 }
+
+var (
+  _ IRouter = &Router{}
+)

@@ -8,6 +8,14 @@ import (
   "time"
 )
 
+type IMongoClient interface {
+  GetClient(key ...string) *MongoClient
+  GetDefaultClient() *MongoClient
+  GetDB(name string) *mongo.Database
+  C(name string) *mongo.Collection
+  CloseAll()
+}
+
 type MongoClient struct {
   *mongo.Database
 }
@@ -95,3 +103,7 @@ func (m *MongoClient) CloseAll() {
     }
   }
 }
+
+var (
+  _ IMongoClient = &MongoClient{}
+)
