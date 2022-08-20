@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"context"
 	"reflect"
 	"time"
 
@@ -10,6 +11,11 @@ import (
 
 // use a single instance of Validate, it caches struct info
 var validate = validator.New()
+
+// SetValidate let validate can use custom rules
+func SetValidate(v *validator.Validate) {
+	validate = v
+}
 
 // validatorNeeded checks if the validator is needed to opType
 func validatorNeeded(opType operator.OpType) bool {
@@ -22,7 +28,7 @@ func validatorNeeded(opType operator.OpType) bool {
 
 // Do calls validator check
 // Don't use opts here
-func Do(doc interface{}, opType operator.OpType, opts ...interface{}) error {
+func Do(ctx context.Context, doc interface{}, opType operator.OpType, opts ...interface{}) error {
 	if !validatorNeeded(opType) {
 		return nil
 	}

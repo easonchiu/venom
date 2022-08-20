@@ -287,14 +287,24 @@ func (c *Client) Ping(timeout int64) error {
 }
 
 // Database create connection to database
-func (c *Client) Database(name string) *Database {
-	return &Database{database: c.client.Database(name), registry: c.registry}
+func (c *Client) Database(name string, options ...*options.DatabaseOptions) *Database {
+	opts := opts.Database()
+	if len(options) > 0 {
+		if options[0].DatabaseOptions != nil {
+			opts = options[0].DatabaseOptions
+		}
+	}
+	return &Database{database: c.client.Database(name, opts), registry: c.registry}
 }
 
 // Session create one session on client
 // Watch out, close session after operation done
-func (c *Client) Session() (*Session, error) {
-	s, err := c.client.StartSession()
+func (c *Client) Session(opt ...*options.SessionOptions) (*Session, error) {
+	sessionOpts := opts.Session()
+	if len(opt) > 0 && opt[0].SessionOptions != nil {
+		sessionOpts = opt[0].SessionOptions
+	}
+	s, err := c.client.StartSession(sessionOpts)
 	return &Session{session: s}, err
 }
 
@@ -309,7 +319,7 @@ func (c *Client) Session() (*Session, error) {
 //   the whole transaction will retry, so this transaction must be idempotent
 // - if operations in callback return qmgo.ErrTransactionNotSupported,
 // - If the ctx parameter already has a Session attached to it, it will be replaced by this session.
-func (c *Client) DoTransaction(ctx context.Context, callback func(sessCtx context.Context) (interface{}, error)) (interface{}, error) {
+func (c *Client) DoTransaction(ctx context.Context, callback func(sessCtx context.Context) (interface{}, error), opts ...*options.TransactionOptions) (interface{}, error) {
 	if !c.transactionAllowed() {
 		return nil, ErrTransactionNotSupported
 	}
@@ -318,7 +328,7 @@ func (c *Client) DoTransaction(ctx context.Context, callback func(sessCtx contex
 		return nil, err
 	}
 	defer s.EndSession(ctx)
-	return s.StartTransaction(ctx, callback)
+	return s.StartTransaction(ctx, callback, opts...)
 }
 
 // ServerVersion get the version of mongoDB server, like 4.4.0
