@@ -5,17 +5,34 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
-func getEngine() *Engine {
-	return Init(&Config{
+func setRouter(g *gin.Engine) {
+	r := g.Group("/")
+	r.GET("", func(ctx *gin.Context) {
+		// qmgo := GetQmgoClient()
+		// n, err := qmgo.C("celue").Find(ctx.Request.Context(), bson.M{}).Count()
+
+		Fail(ctx, 999, "system error", "data")
+		// Success(ctx, "lllll")
+	})
+}
+
+func TestVenom(t *testing.T) {
+	v := Init(&Config{
 		Port: "5000",
 		Mode: DevelopmentMode,
-		SuccessFormat: func(code int, obj interface{}) interface{} {
+		SuccessFormat: func(obj interface{}) interface{} {
 			return gin.H{
 				"code":    0,
 				"message": "ok",
+				"data":    obj,
+			}
+		},
+		FailFormat: func(errCode interface{}, errMessage string, obj interface{}) interface{} {
+			return gin.H{
+				"code":    errCode,
+				"message": errMessage,
 				"data":    obj,
 			}
 		},
@@ -26,37 +43,12 @@ func getEngine() *Engine {
 			MaxBackups: 3,
 			Level:      logrus.DebugLevel,
 		},
-		Mongo: MongoConfig{
-			URI:      "mongodb://localhost:27017/admin",
-			Database: "stock",
-		},
 		Qmgo: QmgoConfig{
 			URI:      "mongodb://localhost:27017/admin",
 			Database: "stock",
 		},
 	})
-}
 
-func setRouter(v *Engine) {
-	r := v.Router()
-	r.GET("", func(ctx *Context) bool {
-		i, e := ctx.Mongo.C("day").CountDocuments(ctx.Bg(), bson.M{})
-
-		n, err := ctx.Qmgo.C("day").Find(ctx.Bg(), bson.M{}).Count()
-
-		return ctx.Success200(gin.H{
-			"count_mongo": i,
-			"err_mongo":   e,
-			"count_qmgo":  n,
-			"err_qmgo":    err,
-		})
-	})
-}
-
-func TestVenom(t *testing.T) {
-	v := getEngine()
-
-	setRouter(v)
-
-	_ = v.Start()
+	setRouter(v.Engine())
+	v.Start()
 }

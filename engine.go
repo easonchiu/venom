@@ -1,105 +1,76 @@
 package venom
 
 import (
-  "fmt"
-  "github.com/gin-gonic/gin"
+	"fmt"
+
+	"github.com/gin-gonic/gin"
 )
 
 type IEngine interface {
-  Use(middleware ...Handle)
-  Router() *Router
-  Mode() Mode
-  Start() error
+	Engine() *gin.Engine
+	Start() error
 }
 
 type Engine struct {
-  Config *Config
-  Redis  *RedisClient
-  Mongo  *MongoClient
-  Qmgo   *QmgoClient
-  Gin    *gin.Engine
+	c *Config
+	g *gin.Engine
 }
 
 // 初始化server
 func Init(config *Config) *Engine {
-  ginMode := gin.DebugMode
-  if config.Mode == ProductionMode {
-    ginMode = gin.ReleaseMode
-  }
+	setConfig(config)
 
-  gin.SetMode(ginMode)
+	ginMode := gin.DebugMode
+	if config.Mode == ProductionMode {
+		ginMode = gin.ReleaseMode
+	}
 
-  g := gin.Default()
+	gin.SetMode(ginMode)
 
-  rds := initRedisClient(DefaultRedisClientKey, config.Redis)
-  mgo := initMongoClient(DefaultMongoClientKey, config.Mongo)
-  qmgo := initQmgoClient(DefaultQmgoClientKey, config.Qmgo)
+	g := gin.Default()
 
-  if config.RedisMap != nil {
-    for k, c := range config.RedisMap {
-      initRedisClient(k, c)
-    }
-  }
+	initRedisClient(DefaultRedisClientKey, config.Redis)
+	initQmgoClient(DefaultQmgoClientKey, config.Qmgo)
 
-  if config.MongoMap != nil {
-    for k, c := range config.MongoMap {
-      initMongoClient(k, c)
-    }
-  }
+	if config.RedisMap != nil {
+		for k, c := range config.RedisMap {
+			initRedisClient(k, c)
+		}
+	}
 
-  if config.QmgoMap != nil {
-    for k, c := range config.QmgoMap {
-      initQmgoClient(k, c)
-    }
-  }
+	if config.QmgoMap != nil {
+		for k, c := range config.QmgoMap {
+			initQmgoClient(k, c)
+		}
+	}
 
-  if !config.Logger.Disabled {
-    g.Use(LoggerMiddleware(config.Logger))
-  }
+	if !config.Logger.Disabled {
+		g.Use(LoggerMiddleware(config.Logger))
+	}
 
-  engine := &Engine{
-    Config: config,
-    Redis:  rds,
-    Mongo:  mgo,
-    Qmgo:   qmgo,
-    Gin:    g,
-  }
+	engine := &Engine{
+		c: config,
+		g: g,
+	}
 
-  return engine
+	return engine
 }
 
-// 使用中间件
-func (e *Engine) Use(middleware ...Handle) {
-  if middleware == nil || len(middleware) == 0 {
-    return
-  }
-
-  funcs := make([]gin.HandlerFunc, 0, len(middleware))
-  for _, m := range middleware {
-    funcs = append(funcs, func(gctx *gin.Context) {
-      m(&Context{e.Config, e.Redis, e.Mongo, e.Qmgo, gctx})
-    })
-  }
-
-  e.Gin.Use(funcs...)
-}
-
-func (e *Engine) Mode() Mode {
-  return e.Config.Mode
+func (e *Engine) Engine() *gin.Engine {
+	return e.g
 }
 
 // 启动server
 func (e *Engine) Start() error {
-  defer func() {
-    e.Mongo.CloseAll()
-    e.Qmgo.CloseAll()
-    e.Redis.CloseAll()
-  }()
+	defer func() {
+		GetQmgoClient().CloseAll()
+		GetRedisClient().CloseAll()
+	}()
 
-  fmt.Println("Ready start venom ...")
-  return e.Gin.Run(e.Config.Address + ":" + e.Config.Port)
+	fmt.Println("Ready start venom ...")
+	return e.g.Run(e.c.Address + ":" + e.c.Port)
 }
 
 var (
-  _ IEngine = &Engine{}
+	_ IEngine = &Engine{}
 )
