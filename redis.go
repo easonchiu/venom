@@ -1,85 +1,113 @@
+/*
+ * @Author: zhaozhida zhaozhida@qiniu.com
+ * @Date: 2023-07-26 14:26:07
+ * @LastEditors: zhaozhida zhaozhida@qiniu.com
+ * @LastEditTime: 2023-07-26 14:36:45
+ * @Description:
+ */
 package venom
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/go-redis/redis/v8"
 )
 
-type IRedisClient interface {
-	GetClient(key ...string) *RedisClient
-	GetDefaultClient() *RedisClient
-	CloseAll()
+type RedisPlugin struct {
+	client *redis.Client
+	config *RedisConfig
 }
 
-type RedisClient struct {
-	*redis.Client
+type RedisConfig struct {
+	Name     string
+	Host     string
+	Port     string
+	Password string
+	DB       int
 }
 
-const DefaultRedisClientKey = "default"
+const DefaultRedisClientName = "default"
 
-var rdsclients = make(map[string]*RedisClient)
+// redis 的 client list
+var redisClients = make(map[string]*redis.Client)
 
-func initRedisClient(key string, config RedisConfig) *RedisClient {
-	client := new(RedisClient)
+// init plugin
+func InitRedisPlugin(config *RedisConfig) *RedisPlugin {
+	return &RedisPlugin{config: config}
+}
 
-	if key == "" || config.Host == "" || config.Disabled {
-		return client
+// 启动
+func (plugin *RedisPlugin) OnStart(config *Config) {
+	if plugin.config.Name == "" {
+		plugin.config.Name = DefaultRedisClientName
 	}
 
-	if c := client.GetClient(key); c != nil {
-		return c
+	// client重名
+	if _, exist := redisClients[plugin.config.Name]; exist {
+		panic(fmt.Errorf("redis client named %v already exists", plugin.config.Name))
 	}
 
 	port := "6379"
 
-	if config.Port != "" {
-		port = config.Port
+	if plugin.config.Port != "" {
+		port = plugin.config.Port
 	}
 
-	client = &RedisClient{
-		redis.NewClient(&redis.Options{
-			Addr:     config.Host + ":" + port,
-			Password: config.Password,
-			DB:       config.DB,
-		}),
+	if strings.Contains(plugin.config.Host, ":") {
+		sp := strings.Split(plugin.config.Host, ":")
+		if len(sp) != 2 {
+			panic(fmt.Errorf("redis host value is unavailable: %v", plugin.config.Host))
+		}
+		plugin.config.Host = sp[0]
+		port = sp[1]
 	}
 
-	rdsclients[key] = client
+	client := redis.NewClient(&redis.Options{
+		Addr:     plugin.config.Host + ":" + port,
+		Password: plugin.config.Password,
+		DB:       plugin.config.DB,
+	})
 
-	return client
+	plugin.client = client
+	redisClients[plugin.config.Name] = client
+
+	fmt.Printf("[PLUGIN] Redis <%v> start ok...\n", plugin.config.Name)
 }
 
-func GetRedisClient(key ...string) *RedisClient {
-	client := new(RedisClient)
-	return client.GetClient(key...)
-}
-
-func (r *RedisClient) GetClient(key ...string) *RedisClient {
-	k := DefaultRedisClientKey
-
-	if key != nil && len(key) > 0 {
-		k = key[0]
-	}
-
-	if rdsclients == nil {
-		return nil
-	}
-
-	return rdsclients[k]
-}
-
-func (r *RedisClient) GetDefaultClient() *RedisClient {
-	return r.GetClient(DefaultRedisClientKey)
-}
-
-func (r *RedisClient) CloseAll() {
-	for k, c := range rdsclients {
-		if c != nil {
-			_ = c.Close()
-			rdsclients[k] = nil
+// 卸载
+func (plugin *RedisPlugin) OnDestroy(config *Config) {
+	if plugin.config.Name != "" && plugin != nil {
+		if _, exist := redisClients[plugin.config.Name]; exist {
+			_ = plugin.client.Close()
+			delete(redisClients, plugin.config.Name)
 		}
 	}
 }
 
-var (
-	_ IRedisClient = &RedisClient{}
-)
+// 获取 redis 的 client
+func (plugin *RedisPlugin) GetClient(name ...string) *redis.Client {
+	k := DefaultRedisClientName
+
+	if name != nil {
+		k = name[0]
+	}
+
+	if plugin.config != nil && plugin.config.Name == k && plugin.client != nil {
+		return plugin.client
+	}
+
+	if redisClients == nil {
+		return nil
+	}
+
+	return redisClients[k]
+}
+
+func GetRedisClient(client ...string) *redis.Client {
+	plugin := new(RedisPlugin)
+	return plugin.GetClient(client...)
+}
+
+// 检验是否实现了plugin interface
+var _ IPlugin = (*RedisPlugin)(nil)

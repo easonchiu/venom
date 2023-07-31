@@ -1,94 +1,108 @@
+/*
+ * @Author: zhaozhida zhaozhida@qiniu.com
+ * @Date: 2023-07-26 11:11:40
+ * @LastEditors: zhaozhida zhaozhida@qiniu.com
+ * @LastEditTime: 2023-07-26 14:36:39
+ * @Description:
+ */
 package venom
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/qiniu/qmgo"
 )
 
-type IQmgoClient interface {
-	GetClient(key ...string) *QmgoClient
-	GetDefaultClient() *QmgoClient
-	GetDB(name string) *qmgo.Database
-	C(name string) *qmgo.Collection
-	CloseAll()
+type QmgoPlugin struct {
+	client *qmgo.QmgoClient
+	config *QmgoConfig
 }
 
-type QmgoClient struct {
-	*qmgo.QmgoClient
+type QmgoConfig struct {
+	Name        string
+	URI         string
+	Database    string
+	MinPoolSize uint64
+	MaxPoolSize uint64
 }
 
-const DefaultQmgoClientKey = "default"
+const DefaultQmgoClientName = "default"
 
-var qmgoclients = make(map[string]*QmgoClient)
+// qmgo 的 client list
+var qmgoClients = make(map[string]*qmgo.QmgoClient)
 
-func initQmgoClient(key string, config QmgoConfig) *QmgoClient {
-	client := new(QmgoClient)
+// init plugin
+func InitQmgoPlugin(config *QmgoConfig) *QmgoPlugin {
+	return &QmgoPlugin{config: config}
+}
 
-	if key == "" || config.URI == "" || config.Database == "" || config.Disabled {
-		return client
+// 启动
+func (plugin *QmgoPlugin) OnStart(config *Config) {
+	if plugin.config.Name == "" {
+		plugin.config.Name = DefaultQmgoClientName
 	}
 
-	cli, err := qmgo.Open(context.Background(), &qmgo.Config{
-		Uri:         config.URI,
-		Database:    config.Database,
-		MinPoolSize: &config.MinPoolSize,
-		MaxPoolSize: &config.MaxPoolSize,
+	// client重名
+	if _, exist := qmgoClients[plugin.config.Name]; exist {
+		panic(fmt.Errorf("[PLUGIN] Qmgo named %v already exists", plugin.config.Name))
+	}
+
+	client, err := qmgo.Open(context.Background(), &qmgo.Config{
+		Uri:         plugin.config.URI,
+		Database:    plugin.config.Database,
+		MinPoolSize: &plugin.config.MinPoolSize,
+		MaxPoolSize: &plugin.config.MaxPoolSize,
 	})
 
 	if err != nil {
 		panic(err)
 	}
 
-	client = &QmgoClient{
-		cli,
-	}
+	plugin.client = client
+	qmgoClients[plugin.config.Name] = client
 
-	qmgoclients[key] = client
-
-	return client
+	fmt.Printf("[PLUGIN] Qmgo <%v> start ok...\n", plugin.config.Name)
 }
 
-func GetQmgoClient(key ...string) *QmgoClient {
-	client := new(QmgoClient)
-	return client.GetClient(key...)
-}
-
-func (m *QmgoClient) GetClient(key ...string) *QmgoClient {
-	k := DefaultQmgoClientKey
-
-	if key != nil && len(key) > 0 {
-		k = key[0]
-	}
-
-	if qmgoclients == nil {
-		return nil
-	}
-
-	return qmgoclients[k]
-}
-
-func (m *QmgoClient) GetDefaultClient() *QmgoClient {
-	return m.GetClient(DefaultQmgoClientKey)
-}
-
-func (m *QmgoClient) GetDB(name string) *qmgo.Database {
-	return m.Client.Database(name)
-}
-
-func (m *QmgoClient) C(name string) *qmgo.Collection {
-	return m.QmgoClient.Database.Collection(name)
-}
-
-func (m *QmgoClient) CloseAll() {
-	for k, c := range qmgoclients {
-		if c != nil {
-			_ = c.Close(context.Background())
-			qmgoclients[k] = nil
+// 卸载
+func (plugin *QmgoPlugin) OnDestroy(config *Config) {
+	if plugin.config.Name != "" && plugin != nil {
+		if _, exist := qmgoClients[plugin.config.Name]; exist {
+			_ = plugin.client.Close(context.Background())
+			delete(qmgoClients, plugin.config.Name)
 		}
 	}
 }
 
-var (
-	_ IQmgoClient = &QmgoClient{}
-)
+// 获取 qmgo 的 client
+func (plugin *QmgoPlugin) GetClient(name ...string) *qmgo.QmgoClient {
+	k := DefaultQmgoClientName
+
+	if name != nil {
+		k = name[0]
+	}
+
+	if plugin.config != nil && plugin.config.Name == k && plugin.client != nil {
+		return plugin.client
+	}
+
+	if qmgoClients == nil {
+		return nil
+	}
+
+	return qmgoClients[k]
+}
+
+func GetQmgoClient(client ...string) *qmgo.QmgoClient {
+	plugin := new(QmgoPlugin)
+	return plugin.GetClient(client...)
+}
+
+func GetQmgoDB(client ...string) *qmgo.Database {
+	plugin := new(QmgoPlugin)
+	return plugin.GetClient(client...).Database
+}
+
+// 检验是否实现了plugin interface
+var _ IPlugin = (*QmgoPlugin)(nil)

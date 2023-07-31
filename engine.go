@@ -1,3 +1,10 @@
+/*
+ * @Author: zhaozhida zhaozhida@qiniu.com
+ * @Date: 2023-07-26 10:32:09
+ * @LastEditors: zhaozhida zhaozhida@qiniu.com
+ * @LastEditTime: 2023-07-26 14:25:11
+ * @Description:
+ */
 package venom
 
 import (
@@ -6,19 +13,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type IEngine interface {
-	Engine() *gin.Engine
-	Start() error
-}
-
 type Engine struct {
 	c *Config
 	g *gin.Engine
 }
 
+// 启动前的生命周期函数
+var onBeforeStart func()
+
+// 销毁前的生命周期函数
+var onBeforeDestroy func()
+
 // 初始化server
 func Init(config *Config) *Engine {
-	setConfig(config)
+	SetConfig(config)
 
 	ginMode := gin.DebugMode
 	if config.Mode == ProductionMode {
@@ -29,23 +37,9 @@ func Init(config *Config) *Engine {
 
 	g := gin.Default()
 
-	initRedisClient(DefaultRedisClientKey, config.Redis)
-	initQmgoClient(DefaultQmgoClientKey, config.Qmgo)
-
-	if config.RedisMap != nil {
-		for k, c := range config.RedisMap {
-			initRedisClient(k, c)
-		}
-	}
-
-	if config.QmgoMap != nil {
-		for k, c := range config.QmgoMap {
-			initQmgoClient(k, c)
-		}
-	}
-
-	if !config.Logger.Disabled {
-		g.Use(LoggerMiddleware(config.Logger))
+	// use 中间件
+	for _, middleware := range config.Middlewares {
+		g.Use(middleware.GetGinMiddleware(config))
 	}
 
 	engine := &Engine{
@@ -56,19 +50,52 @@ func Init(config *Config) *Engine {
 	return engine
 }
 
-func (e *Engine) Engine() *gin.Engine {
+func (e *Engine) GinEngine() *gin.Engine {
 	return e.g
 }
 
 // 启动server
 func (e *Engine) Start() error {
 	defer func() {
-		GetQmgoClient().CloseAll()
-		GetRedisClient().CloseAll()
+		// 调用生命周期函数
+		if onBeforeDestroy != nil {
+			onBeforeDestroy()
+		}
+
+		// 销毁插件
+		for _, plugin := range config.Plugins {
+			plugin.OnDestroy(config)
+		}
 	}()
 
-	fmt.Println("Ready start venom ...")
+	// 启动插件
+	for _, plugin := range config.Plugins {
+		plugin.OnStart(config)
+	}
+
+	// 启动中间件
+	for _, middleware := range config.Middlewares {
+		middleware.OnStart(config)
+	}
+
+	// 调用生命周期函数
+	if onBeforeStart != nil {
+		onBeforeStart()
+	}
+
+	fmt.Println("🎉 Ready start venom ...")
+
 	return e.g.Run(e.c.Address + ":" + e.c.Port)
+}
+
+// 保存生命周期函数
+func (e *Engine) BeforeStart(f func()) {
+	onBeforeStart = f
+}
+
+// 保存生命周期函数
+func (e *Engine) BeforeDestroy(f func()) {
+	onBeforeDestroy = f
 }
 
 var (
