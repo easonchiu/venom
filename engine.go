@@ -1,14 +1,8 @@
-/*
- * @Author: zhaozhida zhaozhida@qiniu.com
- * @Date: 2023-07-26 10:32:09
- * @LastEditors: zhaozhida zhaozhida@qiniu.com
- * @LastEditTime: 2023-07-26 14:25:11
- * @Description:
- */
 package venom
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -38,8 +32,42 @@ func Init(config *Config) *Engine {
 	g := gin.Default()
 
 	// use 中间件
-	for _, middleware := range config.Middlewares {
-		g.Use(middleware.GetGinMiddleware(config))
+	// 当中间件以 global: 开头时，全局引用
+	for name, middleware := range config.Middlewares {
+		if strings.HasPrefix(strings.ToLower(name), "global:") {
+			g.Use(middleware.GetGinMiddleware(config))
+		}
+	}
+
+	// 注册路由
+	for _, route := range config.Routers {
+		spuri := strings.SplitN(route.URI, ":", 2)
+		if len(spuri) != 2 {
+			break
+		}
+
+		handlers := make([]gin.HandlerFunc, 0)
+		spmw := strings.Split(route.Middlewares, ",")
+
+		// 在 MiddlewarePrefix 中有匹配的路由时，在路由 slice 最前方加入该中间件
+		for prefix, mw := range config.MiddlewarePrefix {
+			if strings.HasPrefix(spuri[1], prefix) {
+				spmw = append([]string{mw}, spmw...)
+			}
+		}
+
+		// 循环中间件，找到具体的中间件方法
+		for _, mw := range spmw {
+			if mwFun, ok := config.Middlewares[mw]; ok {
+				handlers = append(handlers, mwFun.GetGinMiddleware(config))
+			}
+		}
+
+		// 在 handlers 最后加处 handle
+		handlers = append(handlers, route.Handle)
+
+		// 在 gin 中加入路由
+		g.Handle(strings.ToUpper(spuri[0]), spuri[1], handlers...)
 	}
 
 	engine := &Engine{

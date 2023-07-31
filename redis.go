@@ -1,10 +1,3 @@
-/*
- * @Author: zhaozhida zhaozhida@qiniu.com
- * @Date: 2023-07-26 14:26:07
- * @LastEditors: zhaozhida zhaozhida@qiniu.com
- * @LastEditTime: 2023-07-26 14:36:45
- * @Description:
- */
 package venom
 
 import (
