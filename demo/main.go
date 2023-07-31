@@ -8,18 +8,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type pintMW struct{}
-
-func (*pintMW) OnStart(c *venom.Config)   {}
-func (*pintMW) OnDestroy(c *venom.Config) {}
-func (*pintMW) GetGinMiddleware(c *venom.Config) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		fmt.Println("before")
-		ctx.Next()
-		fmt.Println("after")
-	}
-}
-
 func main() {
 	engine := venom.Init(&venom.Config{
 		Port:    "3000",
@@ -30,7 +18,6 @@ func main() {
 				Filename: "log",
 				Level:    logrus.DebugLevel,
 			}),
-			"auth": new(pintMW),
 		},
 		MiddlewarePrefix: map[string]string{
 			"/console": "auth",
