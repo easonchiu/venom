@@ -38,7 +38,7 @@ func (plugin *QmgoPlugin) OnStart(config *Config) {
 
 	// client重名
 	if _, exist := qmgoClients[plugin.config.Name]; exist {
-		panic(fmt.Errorf("[PLUGIN] Qmgo named %v already exists", plugin.config.Name))
+		panic(fmt.Errorf("[VENOM] PLUGIN - Qmgo named %v already exists", plugin.config.Name))
 	}
 
 	client, err := qmgo.Open(context.Background(), &qmgo.Config{
@@ -55,7 +55,7 @@ func (plugin *QmgoPlugin) OnStart(config *Config) {
 	plugin.client = client
 	qmgoClients[plugin.config.Name] = client
 
-	fmt.Printf("[PLUGIN] Qmgo <%v> start ok...\n", plugin.config.Name)
+	fmt.Printf("[VENOM] PLUGIN - Qmgo <%v> start ok...\n", plugin.config.Name)
 }
 
 // 卸载

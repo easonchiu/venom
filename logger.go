@@ -18,6 +18,7 @@ type LoggerMiddleware struct {
 }
 
 type LoggerConfig struct {
+	Name       string
 	Filename   string
 	MaxSize    int
 	MaxBackups int
@@ -49,12 +50,17 @@ func (mw *LoggerMiddleware) OnStart(config *Config) {
 
 	loggerClients[DefaultLoggerClientName] = mw.client
 
-	fmt.Printf("[MIDDLEWARE] Logger start ok...\n")
+	fmt.Printf("[VENOM] MIDDLEWARE - Logger start ok...\n")
 }
 
 // 卸载
 func (mw *LoggerMiddleware) OnDestroy(config *Config) {
 	delete(loggerClients, DefaultLoggerClientName)
+}
+
+// 获取名称
+func (mw *LoggerMiddleware) Name() string {
+	return mw.config.Name
 }
 
 // 获取 logger 的 client

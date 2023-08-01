@@ -8,23 +8,18 @@ const (
 )
 
 type Config struct {
-	Address          string
-	Port             string
-	Mode             Mode
-	SuccessFormat    func(obj interface{}) interface{}
-	FailFormat       func(errCode interface{}, errMessage string, obj interface{}) interface{}
-	Plugins          []IPlugin
-	Middlewares      map[string]IMiddleware
-	MiddlewarePrefix map[string]string
-	Routers          []Router
+	Address       string
+	Port          string
+	SuccessFormat func(obj interface{}) interface{}
+	FailFormat    func(errCode interface{}, errMessage string, obj interface{}) interface{}
 }
 
-var config = new(Config)
+// var config = new(Config)
 
-func SetConfig(c *Config) {
-	config = c
-}
+// func SetConfig(c *Config) {
+// 	config = c
+// }
 
-func GetConfig() *Config {
-	return config
-}
+// func GetConfig() *Config {
+// 	return config
+// }

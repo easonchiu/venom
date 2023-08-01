@@ -9,23 +9,40 @@ import (
 )
 
 func main() {
-	engine := venom.Init(&venom.Config{
-		Port:    "3000",
-		Mode:    venom.DevelopmentMode,
-		Plugins: []venom.IPlugin{},
-		Middlewares: map[string]venom.IMiddleware{
-			"global:log": venom.InitLoggerMiddleware(&venom.LoggerConfig{
-				Filename: "log",
-				Level:    logrus.DebugLevel,
-			}),
-		},
-		MiddlewarePrefix: map[string]string{
-			"/console": "auth",
-		},
-		Routers: []venom.Router{
-			{URI: "GET:/console/a", Handle: testHandle},
-		},
+	engine := venom.New(venom.DevelopmentMode, &venom.Config{
+		Port: "3000",
 	})
+
+	engine.RegisterPlugins(
+		venom.InitQmgoPlugin(&venom.QmgoConfig{
+			URI:      "mongodb://localhost:27017",
+			Database: "test",
+		}),
+	)
+
+	engine.RegisterMiddlewares(
+		venom.InitLoggerMiddleware(&venom.LoggerConfig{
+			Name:     "global:log",
+			Filename: "log",
+			Level:    logrus.DebugLevel,
+		}),
+	)
+
+	engine.RegisterRouters(
+		venom.NewRouter("GET", "/list", testHandle),
+		venom.NewRouterGroupWithMiddlewares("/group2", "auth22222",
+			venom.NewRouterGroupWithMiddlewares("/group2", "auth3333",
+				venom.NewRouterWithMiddlewares("GET", "/list", "auth4444", testHandle),
+			),
+		),
+		venom.NewRouterWithMiddlewares("GET", "/list2", "auth", testHandle),
+		venom.NewRouterGroup("/group1",
+			venom.NewRouter("GET", "/list", testHandle),
+			venom.NewRouterGroup("/group11",
+				venom.NewRouter("GET", "/list", testHandle),
+			),
+		),
+	)
 
 	engine.BeforeStart(func() {
 		fmt.Println("before start...")
@@ -41,5 +58,5 @@ func main() {
 }
 
 func testHandle(ctx *gin.Context) {
-	venom.Success(ctx, "200")
+	// venom.Success(ctx, "200")
 }

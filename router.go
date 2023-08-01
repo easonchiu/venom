@@ -1,9 +1,39 @@
 package venom
 
-import "github.com/gin-gonic/gin"
+import (
+	"strings"
+
+	"github.com/gin-gonic/gin"
+)
 
 type Router struct {
-	URI         string // method + path，例： GET:/users/list
-	Middlewares string // 中间件，多个中间件用英文逗号分隔，例：jwt,admin,xxx
+	Method      string
+	Path        string
+	Middlewares []string // 中间件
 	Handle      func(*gin.Context)
+	children    []Router
+}
+
+func NewRouter(method, path string, handle func(*gin.Context)) Router {
+	return Router{Method: method, Path: path, Handle: handle}
+}
+
+func NewRouterWithMiddlewares(method, path, middlewares string, handle func(*gin.Context)) Router {
+	return Router{Method: method, Path: path, Middlewares: strings.Split(middlewares, ","), Handle: handle}
+}
+
+func NewRouterGroup(path string, routers ...Router) Router {
+	return Router{Path: path, children: routers}
+}
+
+func NewRouterGroupWithMiddlewares(path, middlewares string, routers ...Router) Router {
+	return Router{Path: path, Middlewares: strings.Split(middlewares, ","), children: routers}
+}
+
+func (r *Router) IsGroup() bool {
+	return r.Method == "" && len(r.children) > 0
+}
+
+func (r *Router) IsRouter() bool {
+	return r.Method != "" && len(r.children) == 0
 }
