@@ -4,7 +4,6 @@ import (
 	"github.com/easonchiu/venom"
 	"github.com/easonchiu/venom/demo/internal/router"
 	"github.com/easonchiu/venom/demo/pkg/config"
-	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -31,8 +30,4 @@ func main() {
 	router.NewMyRouter().Load(engine)
 
 	engine.Start()
-}
-
-func testHandle(ctx *gin.Context) {
-	// venom.Success(ctx, "200")
 }
