@@ -129,4 +129,3 @@ func GetLoggerClient() *logrus.Logger {
 }
 
 // 检验是否实现了middleware interface
-var _ IMiddleware = (*LoggerMiddleware)(nil)

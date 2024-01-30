@@ -13,14 +13,14 @@ type QmgoPlugin struct {
 }
 
 type QmgoConfig struct {
-	Name        string
+	Key         string
 	URI         string
 	Database    string
 	MinPoolSize uint64
 	MaxPoolSize uint64
 }
 
-const DefaultQmgoClientName = "default"
+const DefaultQmgoClientKey = "default"
 
 // qmgo 的 client list
 var qmgoClients = make(map[string]*qmgo.QmgoClient)
@@ -32,13 +32,13 @@ func InitQmgoPlugin(config *QmgoConfig) *QmgoPlugin {
 
 // 启动
 func (plugin *QmgoPlugin) OnStart(config *Config) {
-	if plugin.config.Name == "" {
-		plugin.config.Name = DefaultQmgoClientName
+	if plugin.config.Key == "" {
+		plugin.config.Key = DefaultQmgoClientKey
 	}
 
 	// client重名
-	if _, exist := qmgoClients[plugin.config.Name]; exist {
-		panic(fmt.Errorf("[VENOM] PLUGIN - Qmgo named %v already exists", plugin.config.Name))
+	if _, exist := qmgoClients[plugin.config.Key]; exist {
+		panic(fmt.Errorf("[VENOM] PLUGIN - Qmgo key %v already exists", plugin.config.Key))
 	}
 
 	client, err := qmgo.Open(context.Background(), &qmgo.Config{
@@ -53,30 +53,30 @@ func (plugin *QmgoPlugin) OnStart(config *Config) {
 	}
 
 	plugin.client = client
-	qmgoClients[plugin.config.Name] = client
+	qmgoClients[plugin.config.Key] = client
 
-	fmt.Printf("[VENOM] PLUGIN - Qmgo <%v> start ok...\n", plugin.config.Name)
+	fmt.Printf("[VENOM] PLUGIN - Qmgo <%v> start ok...\n", plugin.config.Key)
 }
 
 // 卸载
 func (plugin *QmgoPlugin) OnDestroy(config *Config) {
-	if plugin.config.Name != "" && plugin != nil {
-		if _, exist := qmgoClients[plugin.config.Name]; exist {
+	if plugin.config.Key != "" && plugin != nil {
+		if _, exist := qmgoClients[plugin.config.Key]; exist {
 			_ = plugin.client.Close(context.Background())
-			delete(qmgoClients, plugin.config.Name)
+			delete(qmgoClients, plugin.config.Key)
 		}
 	}
 }
 
 // 获取 qmgo 的 client
-func (plugin *QmgoPlugin) GetClient(name ...string) *qmgo.QmgoClient {
-	k := DefaultQmgoClientName
+func (plugin *QmgoPlugin) GetClient(key ...string) *qmgo.QmgoClient {
+	k := DefaultQmgoClientKey
 
-	if name != nil {
-		k = name[0]
+	if key != nil {
+		k = key[0]
 	}
 
-	if plugin.config != nil && plugin.config.Name == k && plugin.client != nil {
+	if plugin.config != nil && plugin.config.Key == k && plugin.client != nil {
 		return plugin.client
 	}
 

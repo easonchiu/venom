@@ -1,0 +1,2 @@
+mode: debug #启动模式 debug, release
+port: :8080 #启动端口
